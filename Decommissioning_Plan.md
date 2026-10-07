@@ -34,22 +34,47 @@ Deletion is permanent and must not begin until the backup plan has passed verifi
 
 ## 2. Decommission and Delete the Virtual Machines
 
-1. Confirm that `WIN10-LAB` and `UBUNTU-LAB` are the only VMs assigned to this lab. Investigate any unexpected VM before continuing.
-2. Shut down each guest from its operating system when possible. If a guest does not respond, document the condition before using a forced stop.
-3. Verify both VMs are off:
+Current live Week 8 evidence takes precedence over historical environment data. The verified starting inventory on `WINTHIRTYFOUR` is:
+
+- `Alpine1` — Off
+- `Alpine2` — Off
+- `Alpine3` — Off
+- `Alpine4` — Running
+- `Manager1` — Saved
+- `node1` — Saved
+- `node2` — Saved
+- `node3` — Saved
+
+The assignment requires deletion of all virtual machines. Use the current Hyper-V inventory dynamically so that the procedure does not depend only on hard-coded names.
+
+1. After all required backups are verified, capture and review the live inventory. Confirm that every returned VM belongs to the Week 8 lab and investigate any unexpected entry before continuing:
 
    ```powershell
-   Get-VM -Name 'WIN10-LAB','UBUNTU-LAB' | Select-Object Name, State, Status
+   $LabVMs = Get-VM
+   $LabVMs | Select-Object Name, State, Path
    ```
 
-4. Remove the two VMs from Hyper-V Manager or with PowerShell after their names and paths are verified:
+2. Gracefully shut down each running guest from inside its operating system when possible. Allow the shutdown to finish. For a remaining Running or Saved VM that cannot be shut down normally, document its state and stop it only as needed:
 
    ```powershell
-   Remove-VM -Name 'WIN10-LAB','UBUNTU-LAB' -Force
+   Get-VM | Where-Object State -ne 'Off' | Stop-VM -TurnOff -Force
    ```
 
-5. `Remove-VM` removes the Hyper-V configuration but may leave virtual disks and other files. Review `E:\HyperV` and delete only files that belong to these two VMs. Do not delete the dated capstone backup or unrelated content on `E:`.
-6. Verify removal:
+3. Verify that every confirmed lab VM is Off before deletion:
+
+   ```powershell
+   Get-VM | Select-Object Name, State, Path
+   ```
+
+4. Remove all VMs in the verified lab inventory. If an unexpected or non-lab VM appears, stop and exclude it until ownership is confirmed:
+
+   ```powershell
+   $LabVMs | Remove-VM -Force
+   ```
+
+5. Verify that `Get-VM` returns no remaining lab VMs. `Remove-VM` removes the Hyper-V registration but may leave virtual disks and other associated files.
+6. Inspect `E:\HyperV`, including the Week 7 VM paths, for leftover configuration files, VHDX files, AVHDX files, checkpoints, and folders. Delete only remnants verified as belonging to the decommissioned lab VMs. Do not delete the dated Capstone backup or unrelated content on `E:`.
+7. Perform the final VM verification:
 
    ```powershell
    Get-VM
@@ -72,7 +97,7 @@ Deletion is permanent and must not begin until the backup plan has passed verifi
    - `C:\Lab4` and `C:\Lab5`, if they still exist
    - `E:\Shares`
    - `E:\Software`
-   - remaining `WIN10-LAB` and `UBUNTU-LAB` files under `E:\HyperV`
+   - remaining verified lab VM files under `E:\HyperV`
 
 5. Review temporary files, lab scripts, installer packages, ISO files, temporary exports, student-created scheduled tasks, and student-created local profiles or accounts. Remove only items associated with the course lab. Do not delete built-in Windows components, built-in accounts, or required administrative accounts.
 6. Review course-related applications against the inventory and uninstall only software added for the lab.
@@ -112,7 +137,7 @@ The final state must distinguish three categories:
 - **Required retained backup:** the verified Capstone backup under `E:\CapstoneBackup` must remain intact and readable.
 - **Deleted-data remanence:** after deletion and verification, unused space may be sanitized so recoverable fragments of deleted lab data do not remain.
 
-1. Confirm that no lab VMs are registered and no files for `WIN10-LAB` or `UBUNTU-LAB` remain under `E:\HyperV` or other active storage locations.
+1. Confirm that no Week 8 lab VMs are registered and no verified lab VM configuration, VHDX, AVHDX, checkpoint, or folder remnants remain under `E:\HyperV` or other active storage locations.
 2. Confirm that no student-created SMB shares remain. Do not remove default administrative shares.
 
    ```powershell
@@ -133,7 +158,7 @@ The final state must distinguish three categories:
 
    ```powershell
    Get-ChildItem -LiteralPath 'C:\Shares','C:\Lab4','C:\Lab5','E:\Shares','E:\Software','E:\HyperV' -Force -Recurse -ErrorAction SilentlyContinue |
-     Where-Object FullName -Match 'WIN10-LAB|UBUNTU-LAB|it115\.test'
+     Where-Object FullName -Match 'Alpine[1-4]|Manager1|node[1-3]|it115\.test'
    ```
 
 7. Confirm that `E:\CapstoneBackup` still contains the verified file, System State, and Group Policy backups and that a sample file remains readable.
@@ -166,5 +191,5 @@ After each operation, confirm that the command completed without error and reche
 
 ## Expected Result
 
-The expected result is a safely decommissioned lab server with the two Hyper-V VMs removed, student applications and files removed, `WINTHIRTYFOUR` correctly demoted from the `it115.test` domain, AD DS-related components removed as appropriate, deleted-data remanence addressed, and the required Capstone backup preserved under `E:\CapstoneBackup`. The server will be shut down only after all verification steps pass.
+The expected result is a safely decommissioned lab server with all verified Week 8 Hyper-V VMs and their confirmed storage remnants removed, student applications and files removed, `WINTHIRTYFOUR` correctly demoted from the `it115.test` domain, AD DS-related components removed as appropriate, deleted-data remanence addressed, and the required Capstone backup preserved under `E:\CapstoneBackup`. The server will be shut down only after all verification steps pass.
 
