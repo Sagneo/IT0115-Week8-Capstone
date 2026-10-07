@@ -18,7 +18,7 @@ The existing contents of `E:` must not be deleted or overwritten during backup p
 3. Inventory the backup sources and estimate their size without changing them:
 
    ```powershell
-   Get-ChildItem -LiteralPath 'C:\Shares','E:\Shares','E:\Software' -Force -ErrorAction SilentlyContinue
+   Get-ChildItem -LiteralPath 'C:\Shares','C:\Lab4','C:\Lab5','E:\Shares','E:\Software' -Force -ErrorAction SilentlyContinue
    Get-WindowsFeature Windows-Server-Backup
    ```
 
@@ -32,20 +32,17 @@ The existing contents of `E:` must not be deleted or overwritten during backup p
 
 ## Back Up Important Files
 
-1. Copy important shared data from `C:\Shares` and `E:\Shares` into separate folders under the dated backup root. Use `robocopy` so that errors and skipped files are logged.
+1. Copy each verified Week 8 file location into its own destination folder under the dated backup root. Use `robocopy` so errors and skipped files are logged. The empty `E:\Shares` and `E:\Software` folders are included because they are part of the current lab structure.
 
    ```powershell
    robocopy 'C:\Shares' "$BackupRoot\Files\C_Shares" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\C_Shares.log"
+   robocopy 'C:\Lab4' "$BackupRoot\Files\C_Lab4" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\C_Lab4.log"
+   robocopy 'C:\Lab5' "$BackupRoot\Files\C_Lab5" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\C_Lab5.log"
    robocopy 'E:\Shares' "$BackupRoot\Files\E_Shares" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\E_Shares.log"
+   robocopy 'E:\Software' "$BackupRoot\Files\E_Software" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\E_Software.log"
    ```
 
-2. Copy the software deployment source files from `E:\Software` because they may be needed to document or rebuild the lab configuration.
-
-   ```powershell
-   robocopy 'E:\Software' "$BackupRoot\Files\Software" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\Software.log"
-   ```
-
-3. Review each `robocopy` log. Exit codes `0` through `7` can represent success with differences or skipped items; an exit code of `8` or higher indicates at least one copy failure that must be corrected.
+2. Review all five `robocopy` logs. Exit codes `0` through `7` can represent success with differences or skipped items; an exit code of `8` or higher indicates at least one copy failure that must be corrected.
 
 > **Optional note:** VM export is not required for Part A and should not be performed unless the instructor specifically requests it. Exporting the VMs to the same `E:` drive could duplicate large VHDX or AVHDX files and consume needed backup space.
 
@@ -100,8 +97,8 @@ System State protects Group Policy as part of Active Directory, but a separate G
 
 Before approving decommissioning:
 
-1. Confirm that the dated backup folder exists on `E:` and contains the expected file, software, and GPO backup folders.
-2. Compare source and destination file counts and sizes. Review all copy logs for failures.
+1. Confirm that the dated backup folder exists on `E:` and contains separate destinations for `C:\Shares`, `C:\Lab4`, `C:\Lab5`, `E:\Shares`, and `E:\Software`, plus the GPO backup folder.
+2. Compare source and destination file counts and sizes for all five file locations. Review every copy log for failures; zero-file source folders should still have a corresponding destination and successful log.
 3. Confirm that `wbadmin get versions -backuptarget:E:` lists the new System State backup.
 4. Confirm that the GPO backup folder contains backup data and that `GPO_Inventory.csv` lists the expected domain policies.
 5. Open a small sample of backed-up documents directly from the destination to confirm readability. Do not alter the originals.
