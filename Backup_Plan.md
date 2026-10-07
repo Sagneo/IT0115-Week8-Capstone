@@ -19,15 +19,14 @@ The existing contents of `E:` must not be deleted or overwritten during backup p
 
    ```powershell
    Get-ChildItem -LiteralPath 'C:\Shares','E:\Shares','E:\Software' -Force -ErrorAction SilentlyContinue
-   Get-VM | Select-Object Name, State, Path
-   Get-WBFeature
+   Get-WindowsFeature Windows-Server-Backup
    ```
 
 4. Verify that `E:` has enough free space for the files and System State backup. Record the date, available space, and intended destination folder.
 5. Create a new dated destination folder on `E:`. Do not reuse or erase the earlier backup until the new backup is verified.
 
    ```powershell
-   $BackupRoot = 'E:\CapstoneBackup\YYYY-MM-DD'
+   $BackupRoot = "E:\CapstoneBackup\$(Get-Date -Format 'yyyy-MM-dd')"
    New-Item -ItemType Directory -Path $BackupRoot -Force
    ```
 
@@ -46,15 +45,9 @@ The existing contents of `E:` must not be deleted or overwritten during backup p
    robocopy 'E:\Software' "$BackupRoot\Files\Software" /E /COPY:DAT /DCOPY:DAT /R:2 /W:5 /XJ /LOG:"$BackupRoot\Software.log"
    ```
 
-3. If the capstone requires copies of VM configuration or virtual disks, place them in a separate `VM_Exports` folder. Exporting is preferred over manually copying files for a running VM. Do not treat these exports as a substitute for the required AD/System State backup.
+3. Review each `robocopy` log. Exit codes `0` through `7` can represent success with differences or skipped items; an exit code of `8` or higher indicates at least one copy failure that must be corrected.
 
-   ```powershell
-   New-Item -ItemType Directory -Path "$BackupRoot\VM_Exports" -Force
-   Export-VM -Name 'WIN10-LAB' -Path "$BackupRoot\VM_Exports"
-   Export-VM -Name 'UBUNTU-LAB' -Path "$BackupRoot\VM_Exports"
-   ```
-
-4. Review each `robocopy` log. Exit codes `0` through `7` can represent success with differences or skipped items; an exit code of `8` or higher indicates at least one copy failure that must be corrected.
+> **Optional note:** VM export is not required for Part A and should not be performed unless the instructor specifically requests it. Exporting the VMs to the same `E:` drive could duplicate large VHDX or AVHDX files and consume needed backup space.
 
 ## Back Up Active Directory
 
@@ -107,7 +100,7 @@ System State protects Group Policy as part of Active Directory, but a separate G
 
 Before approving decommissioning:
 
-1. Confirm that the dated backup folder exists on `E:` and contains the expected file, software, GPO, and optional VM export folders.
+1. Confirm that the dated backup folder exists on `E:` and contains the expected file, software, and GPO backup folders.
 2. Compare source and destination file counts and sizes. Review all copy logs for failures.
 3. Confirm that `wbadmin get versions -backuptarget:E:` lists the new System State backup.
 4. Confirm that the GPO backup folder contains backup data and that `GPO_Inventory.csv` lists the expected domain policies.
@@ -117,5 +110,5 @@ Before approving decommissioning:
 
 ## Expected Result
 
-The expected result is one verified, dated backup set on the `HyperVData` secondary drive. It will contain important files, a current Active Directory System State backup, a separate backup of all Group Policy objects, logs, and any required VM exports. No source data will be removed as part of this plan.
+The expected result is one verified, dated backup set on the `HyperVData` secondary drive. It will contain important files, a current Active Directory System State backup, a separate backup of all Group Policy objects, and verification logs. No source data will be removed as part of this plan.
 

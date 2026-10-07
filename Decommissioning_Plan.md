@@ -16,14 +16,18 @@ Deletion is permanent and must not begin until the backup plan has passed verifi
    ```
 
 3. Confirm the GPO backup and inventory are present.
-4. Record the current VMs, installed roles, applications, shares, and selected data paths:
+4. Record the current VMs, installed roles, applications, shares, scheduled tasks, and selected data paths. The registry queries below are useful inventory sources for traditional per-machine installations; **Settings > Apps > Installed apps** should also be reviewed. Do not use `Win32_Product` because querying it can trigger Windows Installer consistency checks.
 
    ```powershell
    Get-VM | Select-Object Name, State, Path
    Get-WindowsFeature | Where-Object InstallState -eq 'Installed'
    Get-SmbShare | Select-Object Name, Path, Description
-   Get-Package | Select-Object Name, Version, ProviderName
-   Get-ChildItem -LiteralPath 'C:\Shares','E:\Shares','E:\Software','E:\HyperV' -Force -ErrorAction SilentlyContinue
+   Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+     'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
+     Where-Object DisplayName |
+     Select-Object DisplayName, DisplayVersion, Publisher
+   Get-ScheduledTask | Select-Object TaskPath, TaskName, State
+   Get-ChildItem -LiteralPath 'C:\Shares','C:\Lab4','C:\Lab5','E:\Shares','E:\Software','E:\HyperV' -Force -ErrorAction SilentlyContinue
    ```
 
 5. Do not continue if any required backup is missing, unreadable, incomplete, or stored inside a folder scheduled for deletion.
@@ -65,12 +69,14 @@ Deletion is permanent and must not begin until the backup plan has passed verifi
 4. Review and delete only lab-related data from these known locations after the verified backup is protected:
 
    - `C:\Shares`
+   - `C:\Lab4` and `C:\Lab5`, if they still exist
    - `E:\Shares`
    - `E:\Software`
    - remaining `WIN10-LAB` and `UBUNTU-LAB` files under `E:\HyperV`
 
-5. Review scheduled tasks, scripts, installer packages, ISO files, temporary exports, and student-created local profiles. Remove only items associated with the course lab.
-6. Empty the Recycle Bin only after the target list has been reviewed a second time. Keep `E:\CapstoneBackup\YYYY-MM-DD` until the instructor's retention requirement is satisfied.
+5. Review temporary files, lab scripts, installer packages, ISO files, temporary exports, student-created scheduled tasks, and student-created local profiles or accounts. Remove only items associated with the course lab. Do not delete built-in Windows components, built-in accounts, or required administrative accounts.
+6. Review course-related applications against the inventory and uninstall only software added for the lab.
+7. Empty the Recycle Bin only after the target list has been reviewed a second time. Preserve the required dated backup under `E:\CapstoneBackup` until the instructor's retention requirement is satisfied.
 
 ## 4. Demote the Domain Controller Correctly
 
@@ -98,29 +104,56 @@ Deletion is permanent and must not begin until the backup plan has passed verifi
 
 9. Review DNS and Group Policy management components. Remove role services or tools that were installed only for the retired lab domain, but keep anything required by the remaining standalone server.
 
-## 5. Verify That No Student Activity Remains
+## 5. Verify Active Artifacts Are Removed and the Backup Is Retained
 
-1. Confirm that no lab VMs are registered and no files for `WIN10-LAB` or `UBUNTU-LAB` remain outside the protected backup.
-2. Confirm that the known student shares, software deployment folders, scripts, ISOs, scheduled tasks, and application data are removed.
-3. Confirm that AD DS is not installed and that the server is not a Domain Controller:
+The final state must distinguish three categories:
+
+- **Active lab artifacts:** VM registrations and files, student-created SMB shares, lab folders, scripts, temporary files, scheduled tasks, profiles/accounts, and course applications must be removed where applicable.
+- **Required retained backup:** the verified Capstone backup under `E:\CapstoneBackup` must remain intact and readable.
+- **Deleted-data remanence:** after deletion and verification, unused space may be sanitized so recoverable fragments of deleted lab data do not remain.
+
+1. Confirm that no lab VMs are registered and no files for `WIN10-LAB` or `UBUNTU-LAB` remain under `E:\HyperV` or other active storage locations.
+2. Confirm that no student-created SMB shares remain. Do not remove default administrative shares.
+
+   ```powershell
+   Get-VM
+   Get-SmbShare | Select-Object Name, Path, Special
+   ```
+
+3. Check `C:\Shares`, `C:\Lab4`, `C:\Lab5`, `E:\Shares`, `E:\Software`, and `E:\HyperV`. Confirm that lab data is removed and that no required backup was stored inside a deleted path.
+4. Review temporary folders, the Recycle Bin, student-created scheduled tasks, student-created local profiles/accounts, and course-related applications. Remove only verified course artifacts; do not delete built-in Windows components or administrative accounts.
+5. Confirm that AD DS is not installed and that the server is no longer a Domain Controller or a member of the old `it115.test` domain:
 
    ```powershell
    Get-WindowsFeature AD-Domain-Services
    Get-CimInstance Win32_ComputerSystem | Select-Object Name, Domain, PartOfDomain
    ```
 
-4. Review remaining local accounts and profiles. Remove only student-created accounts and profiles after confirming they are no longer needed. Preserve built-in and required administrative accounts.
-5. Search the known data locations for lab names and the old domain name. Review every result before deletion:
+6. Search the known active data locations for lab names and the old domain name. Review every result before deletion:
 
    ```powershell
-   Get-ChildItem -LiteralPath 'C:\Shares','E:\Shares','E:\Software','E:\HyperV' -Force -Recurse -ErrorAction SilentlyContinue |
+   Get-ChildItem -LiteralPath 'C:\Shares','C:\Lab4','C:\Lab5','E:\Shares','E:\Software','E:\HyperV' -Force -Recurse -ErrorAction SilentlyContinue |
      Where-Object FullName -Match 'WIN10-LAB|UBUNTU-LAB|it115\.test'
    ```
 
-6. Review Event Viewer, Server Manager, Hyper-V Manager, installed roles, SMB shares, and installed applications for unexpected remnants or errors.
-7. Document the final verification results without including passwords, tokens, product keys, private keys, or other secrets.
+7. Confirm that `E:\CapstoneBackup` still contains the verified file, System State, and Group Policy backups and that a sample file remains readable.
+8. Review Event Viewer, Server Manager, Hyper-V Manager, installed roles, SMB shares, scheduled tasks, local users/profiles, and installed applications for unexpected remnants or errors.
+9. Document the final verification results without including passwords, tokens, product keys, private keys, or other secrets.
 
-## 6. Final Shutdown
+## 6. Sanitize Free Space After Deletion
+
+After all required deletions are confirmed and the retained `E:\CapstoneBackup` data is verified, Windows `cipher /w` can overwrite unused or free space on an NTFS volume. This reduces deleted-data remanence. It does not intentionally delete existing files, including the retained Capstone backup, but the correct volume must still be confirmed before use.
+
+The operation can take significant time and free disk space is temporarily consumed while it runs. Run it only after all intended deletions are complete, required files are closed, the server can remain available for the full operation, and the correct volumes have been confirmed. These are planned examples only:
+
+```powershell
+cipher /w:C:\
+cipher /w:E:\
+```
+
+After each operation, confirm that the command completed without error and recheck that `E:\CapstoneBackup` remains present and readable.
+
+## 7. Final Shutdown
 
 1. Confirm that the verified backup remains available on `E:` and is not part of the deletion list.
 2. Confirm that all required decommissioning checks have passed and that no task is still running.
@@ -133,5 +166,5 @@ Deletion is permanent and must not begin until the backup plan has passed verifi
 
 ## Expected Result
 
-The expected result is a safely decommissioned lab server with the two Hyper-V VMs removed, student applications and files removed, `WINTHIRTYFOUR` correctly demoted from the `it115.test` domain, AD DS-related components removed as appropriate, and no student activity remnants left outside the protected backup. The server will be shut down only after all verification steps pass.
+The expected result is a safely decommissioned lab server with the two Hyper-V VMs removed, student applications and files removed, `WINTHIRTYFOUR` correctly demoted from the `it115.test` domain, AD DS-related components removed as appropriate, deleted-data remanence addressed, and the required Capstone backup preserved under `E:\CapstoneBackup`. The server will be shut down only after all verification steps pass.
 

@@ -6,6 +6,8 @@ The documents are plans for the lab environment. They do not claim that any back
 
 ## Plans
 
-- [Backup Plan](Backup_Plan.md)
-- [Decommissioning Plan](Decommissioning_Plan.md)
+- Part A: [Backup Plan](Backup_Plan.md)
+- Part B: [Decommissioning Plan](Decommissioning_Plan.md)
+
+Actual SierraLab execution and evidence will be documented separately in the Capstone submission.
 
