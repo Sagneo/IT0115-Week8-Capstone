@@ -109,3 +109,9 @@ Before approving decommissioning:
 
 The expected result is one verified, dated backup set on the `HyperVData` secondary drive. It will contain important files, a current Active Directory System State backup, a separate backup of all Group Policy objects, and verification logs. No source data will be removed as part of this plan.
 
+## Execution Result
+
+Part A was completed on `WINTHIRTYFOUR` using the secondary `E:` drive. Windows Server Backup was installed, and file backups completed for `C:\Shares`, `C:\Lab4`, `C:\Lab5`, `E:\Shares`, and `E:\Software`. The Group Policy backup completed successfully with five GPO objects backed up.
+
+A new Windows Server System State backup completed successfully with `wbadmin` exit code `0`. The verified backup version was `10/07/2026-22:03`. The required backup locations `E:\CapstoneBackup` and `E:\WindowsImageBackup` remained preserved through final decommissioning. An actual restore test was not performed in this lab.
+

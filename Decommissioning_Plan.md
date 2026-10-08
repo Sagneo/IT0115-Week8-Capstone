@@ -193,3 +193,20 @@ After each operation, confirm that the command completed without error and reche
 
 The expected result is a safely decommissioned lab server with all verified Week 8 Hyper-V VMs and their confirmed storage remnants removed, student applications and files removed, `WINTHIRTYFOUR` correctly demoted from the `it115.test` domain, AD DS-related components removed as appropriate, deleted-data remanence addressed, and the required Capstone backup preserved under `E:\CapstoneBackup`. The server will be shut down only after all verification steps pass.
 
+## Completion Status
+
+Part B and the final shutdown were completed and verified:
+
+- All eight Hyper-V VMs—`Alpine1`, `Alpine2`, `Alpine3`, `Alpine4`, `Manager1`, `node1`, `node2`, and `node3`—were shut down. Their registrations and verified storage directories and VHD/VHDX remnants were removed. The final registered VM count was `0`.
+- Student-created SMB shares were removed: `HR Policies`, `IT Tools`, `Mind Stone`, `Payroll Accounts`, `Power Stone`, `Reality Stone`, `Software`, `Soul Stone`, `Space Stone`, and `Users`.
+- Lab directories `C:\Shares`, `C:\Lab4`, `C:\Lab5`, `E:\Shares`, `E:\Software`, and `E:\HyperV` were removed. The required backups at `E:\CapstoneBackup` and `E:\WindowsImageBackup` were preserved.
+- Git, Windows Subsystem for Linux, PuTTY, and Wireshark were removed successfully with exit code `0`.
+- `WINTHIRTYFOUR` was verified as the only Domain Controller and holder of all five FSMO roles. The final Domain Controller was demoted through the supported AD DS workflow without forced demotion, and `it115.test` was removed.
+- After demotion, the server reported computer name `WINTHIRTYFOUR`, domain `WORKGROUP`, and `PartOfDomain: False`. The `NETLOGON` and `SYSVOL` shares were gone.
+- AD DS and DNS role binaries and management tools were removed. After restart, `AD-Domain-Services` and `DNS` both reported `Available`.
+- A stale former-domain profile at `C:\Users\Administrator`, approximately 26.38 GB and associated with a different SID from the current local Administrator, was removed through `Win32_UserProfile` and CIM. The Recycle Bin was cleared, and only the current local Administrator profile at `C:\Users\Administrator.WINTHIRTYFOUR` remained.
+- Final verification showed `WORKGROUP`, `PartOfDomain: False`, AD DS and DNS available, zero registered VMs, no non-system SMB shares, known lab paths absent, and required backups preserved.
+- `WINTHIRTYFOUR` was shut down with `Stop-Computer -Force`. After shutdown, the established RDP endpoint no longer responded, and the TCP check timed out with exit status `1`.
+
+Physical media sanitization or destruction was not performed because the assignment required the backups on `E:` to remain available.
+
